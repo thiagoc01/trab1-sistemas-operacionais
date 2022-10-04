@@ -35,6 +35,9 @@ void geraIOProcesso(Processo **novo)
 {
     int numeroIOs = rand() % 4;
 
+    if (numeroIOs > (*novo)->tempoServico)
+        numeroIOs = rand() % ((*novo)->tempoServico);
+
     (*novo)->quantidadeIO = numeroIOs;
 
     if (numeroIOs != 0)
@@ -42,18 +45,16 @@ void geraIOProcesso(Processo **novo)
         (*novo)->chamadasIO = (IO **) malloc(sizeof(IO *) * numeroIOs);
 
         int temposIO[numeroIOs];
-        
-        int ultimoIO = 0;
-        int j = 0;
-        do
+
+        temposIO[0] = rand() % ((*novo)->tempoServico - numeroIOs);
+
+        for (int i = 1 ; i < numeroIOs ; i++)
         {
-            temposIO[j] = rand() % ((*novo)->tempoServico -ultimoIO) + ultimoIO;
-            if ( temposIO[j] > ultimoIO && (j == numeroIOs-1 || temposIO[j] < (*novo)->tempoServico-1))
-            {
-                j++;
-                ultimoIO = temposIO[j];
-            }
-        }while(j < numeroIOs - 1);
+            temposIO[i] = rand() % ((*novo)->tempoServico - numeroIOs + i);
+
+            while (temposIO[i - 1] >= temposIO[i])
+                temposIO[i] = rand() % ((*novo)->tempoServico - numeroIOs + i);
+        }
 
         for (int i = 0 ; i < numeroIOs ; i++)
         {
