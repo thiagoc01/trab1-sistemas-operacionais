@@ -1,7 +1,8 @@
-#include "tipos.h"
-#include "constantes.h"
-#include "processo.h"
-#include "escalonador.h"
+#include <tipos.h>
+#include <constantes.h>
+#include <processo.h>
+#include <escalonador.h>
+#include <limpeza.h>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,7 +16,15 @@ NoIO *filaFita = NULL, *filaImpressora = NULL, *filaDisco = NULL;
 
 void escalonaProcessos()
 {
-    for ( ; ; t++)
+    #ifdef EXECUCAO_EM_10_MIN // Solicitado no relatório
+
+    for ( ; t != 600 ; t++)
+
+    #else
+
+    for ( ; ; t++) 
+
+    #endif
     {
         printf("Instante %d\n", t);
         printf("=================================\n");
@@ -44,28 +53,44 @@ void escalonaProcessos()
             controlaFilaProcesso(&altaPrioridade);
         
         else if(baixaPrioridade)
-            controlaFilaProcesso(&baixaPrioridade);        
-              
-        
-        sleep(1);
+            controlaFilaProcesso(&baixaPrioridade);
 
-        getchar();
+        #ifdef PARADA_ITERACAO
+        
+            getchar();
+        
+        #else
+
+            sleep(1);  
+
+        #endif     
     }
+
+    #ifdef EXECUCAO_EM_10_MIN
+
+        liberaRecursos(0);
+
+    #endif
 }
 
 void controlaFilaProcesso(NoProcesso **fila)
 {
-    Processo *atual = (*fila)->processo;
+    Processo *atual = (*fila)->processo; // Pega o nó da cabeça
 
     if (atual->tempoServico == 0)
     {
         printf("Processo %d encerrou.\n", atual->pid);
+
         processosRodando--;
+
         retiraProcessoFila(fila);
-        liberaProcesso(atual);
+
+        liberaProcesso(&atual);
+        
+        return;
     }
 
-    else if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado )
+    if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado )
     {
         int tipo = atual->chamadasIO[atual->IOsRealizados]->tipo;
 
@@ -75,7 +100,8 @@ void controlaFilaProcesso(NoProcesso **fila)
                     atual->chamadasIO[atual->IOsRealizados]->duracao + t);
 
         NoIO *novoNo = (NoIO *) malloc(sizeof(NoIO));
-        novoNo->io = atual->chamadasIO[atual->IOsRealizados++];                    
+        
+        novoNo->io = atual->chamadasIO[atual->IOsRealizados];                    
             
         if (tipo == IO_FITA)
             adicionaDispositivoFila(&filaFita, &novoNo);
@@ -88,11 +114,11 @@ void controlaFilaProcesso(NoProcesso **fila)
 
 
         retiraProcessoFila(fila);
-        atual->quantidadeIO--;
+        
         atual->quantumMomentaneo = MAX_QUANTUM;
     }
 
-    else if (atual->quantumMomentaneo == 0)
+    else if (atual->quantumMomentaneo == 0 && atual->tempoServico - 1 != 0)
     {
         printf("Processo %d chegou ao fim da fatia de tempo.\n", atual->pid);
 
@@ -104,6 +130,19 @@ void controlaFilaProcesso(NoProcesso **fila)
         novoNo->processo = atual;
 
         adicionaProcessoFila(&baixaPrioridade, &novoNo);
+    }
+
+    else if (atual->quantumMomentaneo == 0 && atual->tempoServico - 1 == 0)
+    {
+        printf("Processo %d chegou ao fim da fatia de tempo e tempo de serviço. Irá encerrar.\n", atual->pid);
+
+        retiraProcessoFila(fila);
+
+        processosRodando--;
+
+        liberaProcesso(&atual);
+
+        return;
     }
 
     atual->tempoServico--;
@@ -134,13 +173,16 @@ void controlaFilaDispositivo(NoIO **fila)
         NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
         novoNo->processo = io->solicitante;
 
+        io->solicitante->IOsRealizados++;
+        io->solicitante->quantidadeIO--;
+
         if (io->tipo == IO_DISCO)
             adicionaProcessoFila(&baixaPrioridade, &novoNo);
         
         else
             adicionaProcessoFila(&altaPrioridade, &novoNo);
 
-        retiraDispositivoFila(fila);
+        retiraDispositivoFila(fila);        
 
         free(io);
     }   
@@ -211,7 +253,7 @@ void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
 
     while (proximo != fila)
     {
-        printf("Processo %d\n", fila->io->solicitante->pid);
+        printf("Processo %d\n", proximo->io->solicitante->pid);
 
         proximo = proximo->proximo;
     }

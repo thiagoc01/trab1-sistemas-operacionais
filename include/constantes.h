@@ -1,7 +1,7 @@
 #ifndef CONSTANTES_H
 #define CONSTANTES_H
 
-#include "tipos.h"
+#include <tipos.h>
 
 #define MAX_PROCESSOS 5
 #define MAX_QUANTUM 5

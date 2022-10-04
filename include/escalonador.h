@@ -1,7 +1,7 @@
 #ifndef ESCALONADOR_H
 #define ESCALONADOR_H
 
-#include "tipos.h"
+#include <tipos.h>
 
 void escalonaProcessos();
 
