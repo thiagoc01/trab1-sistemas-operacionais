@@ -11,9 +11,7 @@ struct Processo
     int pid;
     int tempoServico;
     int tempoChegada;
-    int status;
     int tempoExecutado;
-    int prioridade;
     int quantumMomentaneo;
     int quantidadeIO;
     int IOsRealizados;

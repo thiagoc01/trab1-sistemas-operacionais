@@ -9,9 +9,7 @@ Processo *criaProcesso(NoProcesso **cabeca, int pid, int chegada)
     NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
 
     novo->pid = pid;
-    novo->prioridade = ALTA_PRIOR;
     novo->quantumMomentaneo = MAX_QUANTUM;
-    novo->status = PRONTO;
     novo->tempoServico = 1 + rand() % 20;
     novo->tempoChegada = chegada;
     novo->tempoExecutado = 0;
@@ -105,27 +103,31 @@ void geraIOProcesso(Processo **novo)
 
 void imprimeInformacoesProcesso(Processo *processo)
 {
-    printf("Processo %d criado.\n", processo->pid);
+    printf(GRN "Processo %d criado.\n\n", processo->pid );
 
     printf("Informações do processo: \n");
+    printf("=================================\n\n");
+
+    printf("Tempo de serviço: %d\n\n", processo->tempoServico);
+    printf("Tempo de chegada: %d\n\n", processo->tempoChegada);
+    printf("Informações sobre IO: \n\n");
     printf("=================================\n");
 
-    printf("Tempo de serviço: %d\n", processo->tempoServico);
-    printf("Tempo de chegada: %d\n", processo->tempoChegada);
-    printf("Informações sobre IO: \n");
-
     if (!processo->chamadasIO)
-        puts("O processo não irá pedir IO.");
+        puts("O processo não irá pedir IO.\n");
     
     else
     {
         for (int i = 0 ; i < processo->quantidadeIO ; i++)
         {
-            printf("Tipo: %d    Tempo: %d   Duração: %d\n",
+            printf("Tipo: %d    Tempo: %d   Duração: %d\n\n",
                                 processo->chamadasIO[i]->tipo,
                                 processo->chamadasIO[i]->tempoEntrada,
                                 processo->chamadasIO[i]->duracao);
+            printf("=================================\n\n");
         }
     }
+
+    printf(COLOR_RESET);
 
 }

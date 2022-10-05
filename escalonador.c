@@ -26,7 +26,7 @@ void escalonaProcessos()
 
     #endif
     {
-        printf("Instante %d\n", t);
+        printf("\nInstante %d\n", t);
         printf("=================================\n");
 
         imprimeInformacoesFilas();
@@ -79,7 +79,7 @@ void controlaFilaProcesso(NoProcesso **fila)
 
     if (atual->tempoServico == 0)
     {
-        printf("Processo %d encerrou.\n", atual->pid);
+        printf(BMAG "Processo %d encerrou.\n\n" COLOR_RESET, atual->pid);
 
         processosRodando--;
 
@@ -94,7 +94,7 @@ void controlaFilaProcesso(NoProcesso **fila)
     {
         int tipo = atual->chamadasIO[atual->IOsRealizados]->tipo;
 
-        printf("Processo %d irá realizar operação de %s. Retornará no instante %d \n",
+        printf(RED "Processo %d irá realizar operação de %s. Retornará no instante %d \n\n" COLOR_RESET,
                     atual->pid,
                     TIPO_IO(tipo),
                     atual->chamadasIO[atual->IOsRealizados]->duracao + t);
@@ -120,7 +120,7 @@ void controlaFilaProcesso(NoProcesso **fila)
 
     else if (atual->quantumMomentaneo == 0 && atual->tempoServico - 1 != 0)
     {
-        printf("Processo %d chegou ao fim da fatia de tempo.\n", atual->pid);
+        printf(RED "Processo %d chegou ao fim da fatia de tempo.\n\n" COLOR_RESET, atual->pid);
 
         atual->quantumMomentaneo = MAX_QUANTUM;
         retiraProcessoFila(fila);
@@ -134,7 +134,7 @@ void controlaFilaProcesso(NoProcesso **fila)
 
     else if (atual->quantumMomentaneo == 0 && atual->tempoServico - 1 == 0)
     {
-        printf("Processo %d chegou ao fim da fatia de tempo e tempo de serviço. Irá encerrar.\n", atual->pid);
+        printf(RED "Processo %d chegou ao fim da fatia de tempo e tempo de serviço. Irá encerrar.\n\n" COLOR_RESET, atual->pid);
 
         retiraProcessoFila(fila);
 
@@ -159,7 +159,7 @@ void controlaFilaDispositivo(NoIO **fila)
     
     if (io->restante)
     {
-        printf("Resta %d u.t. para o processo %d encerrar a operação de %s.\n",
+        printf(RED "Resta(m) %d u.t. para o processo %d encerrar a operação de %s.\n\n" COLOR_RESET,
                                 io->restante,
                                 io->solicitante->pid,
                                 TIPO_IO(io->tipo));
@@ -168,7 +168,7 @@ void controlaFilaDispositivo(NoIO **fila)
 
     else
     {
-        printf("Processo %d encerrou a operação de %s.\n", io->solicitante->pid, TIPO_IO(io->tipo));        
+        printf(RED "Processo %d encerrou a operação de %s.\n\n" COLOR_RESET, io->solicitante->pid, TIPO_IO(io->tipo));        
 
         NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
         novoNo->processo = io->solicitante;
@@ -202,61 +202,62 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char *tipoFila)
 {
     if (!fila)
     {
-        printf("Não há processos na fila de ");
+        printf(YEL "Não há processos na fila de ");
         printf("%s", tipoFila);
-        puts(".");
+        puts(".\n" COLOR_RESET);
         return;
     }
 
-    printf("Fila de ");
+    printf(CYN "Fila de ");
     printf("%s", tipoFila);
     puts(": ");
-    printf("=================================\n");
+    printf("=================================\n\n");
 
-    printf("Processo %d com tempo de serviço %d e %d solicitações de IO.\n",
+    printf("Processo %d com tempo de serviço %d, %d solicitação(ões) de IO e quantum restante de %d u.t..\n\n",
                         fila->processo->pid,
                         fila->processo->tempoServico,
-                        fila->processo->quantidadeIO);
+                        fila->processo->quantidadeIO,
+                        fila->processo->quantumMomentaneo);
 
     NoProcesso *proximo = fila->proximo;
 
     while (proximo != fila)
     {
-        printf("Processo %d com tempo de serviço %d e %d solicitações de IO.\n",
+        printf("Processo %d com tempo de serviço %d e %d solicitação(ões) de IO.\n\n",
                         proximo->processo->pid,
                         proximo->processo->tempoServico,
                         proximo->processo->quantidadeIO);
         proximo = proximo->proximo;
     }
 
-    printf("=================================\n");
+    printf("=================================\n\n" COLOR_RESET);
 }
 
 void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
 {
     if (!fila)
     {
-        printf("Não há processos na fila de ");
+        printf(YEL "Não há processos na fila de ");
         printf("%s", tipoFila);
-        puts(".");
+        puts(".\n" COLOR_RESET);
         return;
     }
 
-    printf("Fila de ");
+    printf(CYN "Fila de ");
     printf("%s", tipoFila);
     puts(": ");
-    printf("=================================\n");
+    printf("=================================\n\n");
 
-    printf("Processo %d\n", fila->io->solicitante->pid);
+    printf("Processo %d\n\n", fila->io->solicitante->pid);
 
     NoIO *proximo = fila->proximo;
 
     while (proximo != fila)
     {
-        printf("Processo %d\n", proximo->io->solicitante->pid);
+        printf("Processo %d\n\n", proximo->io->solicitante->pid);
 
         proximo = proximo->proximo;
     }
 
-    printf("=================================\n");
+    printf("=================================\n\n" COLOR_RESET);
 }
