@@ -11,6 +11,10 @@ int t = 0;
 int pid_atual = 1;
 int processosRodando = 0;
 
+/* Utilizadas para cálculo de retorno de operação de IO */
+
+int tamanhoFilaFita = 0, tamanhoFilaDisco = 0, tamanhoFilaImpressora = 0;
+
 NoProcesso *baixaPrioridade = NULL, *altaPrioridade = NULL;
 NoIO *filaFita = NULL, *filaImpressora = NULL, *filaDisco = NULL;
 
@@ -92,25 +96,42 @@ void controlaFilaProcesso(NoProcesso **fila)
 
     if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado )
     {
-        int tipo = atual->chamadasIO[atual->IOsRealizados]->tipo;
-
-        printf(RED "Processo %d irá realizar operação de %s. Retornará no instante %d \n\n" COLOR_RESET,
-                    atual->pid,
-                    TIPO_IO(tipo),
-                    atual->chamadasIO[atual->IOsRealizados]->duracao + t);
+        int tipo = atual->chamadasIO[atual->IOsRealizados]->tipo, offset = 0;        
 
         NoIO *novoNo = (NoIO *) malloc(sizeof(NoIO));
         
         novoNo->io = atual->chamadasIO[atual->IOsRealizados];                    
             
         if (tipo == IO_FITA)
-            adicionaDispositivoFila(&filaFita, &novoNo);
+        {
+            if (tamanhoFilaFita)
+                offset = (tamanhoFilaFita - 1) * TEMPO_IO_FITA + filaFita->io->restante;
+
+            adicionaDispositivoFila(&filaFita, &novoNo, &tamanhoFilaFita);
+            
+        }
 
         else if (tipo == IO_DISCO)
-            adicionaDispositivoFila(&filaDisco, &novoNo);
+        {
+            if (tamanhoFilaDisco)
+                offset = (tamanhoFilaDisco - 1) * TEMPO_IO_DISCO + filaDisco->io->restante;
+
+            adicionaDispositivoFila(&filaDisco, &novoNo, &tamanhoFilaDisco);
+            
+        }
         
         else
-            adicionaDispositivoFila(&filaImpressora, &novoNo);                
+        {
+            if (tamanhoFilaImpressora)
+                offset = (tamanhoFilaImpressora - 1) * TEMPO_IO_IMPRESSORA + filaImpressora->io->restante;
+
+            adicionaDispositivoFila(&filaImpressora, &novoNo, &tamanhoFilaImpressora);            
+        }
+
+        printf(RED "Processo %d irá realizar operação de %s. Retornará no instante %d \n\n" COLOR_RESET,
+                    atual->pid,
+                    TIPO_IO(tipo),
+                    t + atual->chamadasIO[atual->IOsRealizados]->duracao + offset);               
 
 
         retiraProcessoFila(fila);
@@ -182,7 +203,21 @@ void controlaFilaDispositivo(NoIO **fila)
         else
             adicionaProcessoFila(&altaPrioridade, &novoNo);
 
-        retiraDispositivoFila(fila);        
+        switch (io->tipo)
+        {
+            case IO_DISCO:
+                retiraDispositivoFila(fila, &tamanhoFilaDisco);
+                break; 
+
+            case IO_FITA:
+                retiraDispositivoFila(fila, &tamanhoFilaFita);
+                break; 
+
+            case IO_IMPRESSORA:
+                retiraDispositivoFila(fila, &tamanhoFilaImpressora);
+                break; 
+        }
+              
 
         free(io);
     }   

@@ -138,7 +138,19 @@ void liberaRecursos(int signum)
     exit(0);
 }
 
-void alteraComportamentoSigTermInt() // Redireciona os sinais para liberação de recursos
+// Redireciona os sinais para liberação de recursos
+
+#ifdef _WIN32 // Windows não suporta a implementação de sigaction
+
+void alteraComportamentoSigTermInt() 
+{
+    signal(SIGTERM, liberaRecursos);
+    signal(SIGINT, liberaRecursos);    
+}
+
+#else
+
+void alteraComportamentoSigTermInt()
 {
     struct sigaction sa;
 
@@ -150,4 +162,6 @@ void alteraComportamentoSigTermInt() // Redireciona os sinais para liberação d
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);    
 }
+
+#endif
 

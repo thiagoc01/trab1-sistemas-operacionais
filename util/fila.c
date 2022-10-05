@@ -24,14 +24,14 @@ void adicionaProcessoFila(NoProcesso **cabeca, NoProcesso **processo)
     }
 }
 
-void adicionaDispositivoFila(NoIO **cabeca, NoIO **dispositivo)
+void adicionaDispositivoFila(NoIO **cabeca, NoIO **dispositivo, int *tamanhoFila)
 {
     if (*cabeca == NULL)
     {
         (*dispositivo)->anterior = *dispositivo;
         (*dispositivo)->proximo = *dispositivo;
         *cabeca = *dispositivo;
-        
+        *tamanhoFila = 1;        
     }
 
     else
@@ -40,6 +40,7 @@ void adicionaDispositivoFila(NoIO **cabeca, NoIO **dispositivo)
         (*dispositivo)->anterior = (*cabeca)->anterior;
         (*dispositivo)->proximo = *cabeca;
         (*cabeca)->anterior = *dispositivo;
+        *tamanhoFila++;
     }
 }
 
@@ -67,7 +68,7 @@ void retiraProcessoFila(NoProcesso **cabeca)
     }
 }
 
-void retiraDispositivoFila(NoIO **cabeca)
+void retiraDispositivoFila(NoIO **cabeca, int *tamanhoFila)
 {
     if (*cabeca)
     {
@@ -77,6 +78,7 @@ void retiraDispositivoFila(NoIO **cabeca)
         {
             free(*cabeca);
             *cabeca = NULL;
+            *tamanhoFila = 0;
         }
 
         else
@@ -86,6 +88,7 @@ void retiraDispositivoFila(NoIO **cabeca)
             *cabeca = pop->proximo;
             (*cabeca)->anterior = pop->anterior;
             free(pop);
+            *tamanhoFila--;
         }
 
         
