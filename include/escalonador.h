@@ -9,6 +9,8 @@ void controlaFilaProcesso(NoProcesso **fila);
 
 void controlaFilaDispositivo(NoIO **fila);
 
+void checaTempoEntradaProcesso(NoProcesso **entrada);
+
 void imprimeInformacoesFilas();
 
 void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char* tipoFila);

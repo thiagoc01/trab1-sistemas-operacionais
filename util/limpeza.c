@@ -1,6 +1,6 @@
 #include <limpeza.h>
 
-extern NoProcesso *baixaPrioridade, *altaPrioridade;
+extern NoProcesso *baixaPrioridade, *altaPrioridade, *entrada;
 extern NoIO *filaFita, *filaImpressora, *filaDisco;
 
 void liberaProcessos(NoProcesso **no)

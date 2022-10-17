@@ -3,10 +3,12 @@
 
 #include <tipos.h>
 
+#define ENTRADA 0
+
 #define MAX_PROCESSOS 5
 #define MAX_QUANTUM 5
 
-#define TEMPO_IO_IMPRESSORA 3
+#define TEMPO_IO_IMPRESSORA 7
 #define TEMPO_IO_DISCO 4
 #define TEMPO_IO_FITA 5
 

@@ -44,11 +44,13 @@ void adicionaDispositivoFila(NoIO **cabeca, NoIO **dispositivo, int *tamanhoFila
     }
 }
 
-void retiraProcessoFila(NoProcesso **cabeca)
+void retiraProcessoFila(NoProcesso **cabeca, Processo **retorno, int entrada)
 {
     if (*cabeca)
     {
         NoProcesso *pop = *cabeca;
+        if(entrada)
+            *retorno = pop->processo;
 
         if ((*cabeca)->anterior == *cabeca && (*cabeca)->proximo == *cabeca)
         {

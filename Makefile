@@ -1,6 +1,6 @@
 CC = gcc
 INCLUDES = ./include
-FLAGS =  -Wall -I $(INCLUDES) $(DEFINES)  -o
+FLAGS =  -Wall -I $(INCLUDES) $(DEFINES) -g -o
 TARGET = escalonador
 OBJETOS = fila.o limpeza.o
 EXECUCAO_EM_10_MIN =
@@ -17,7 +17,7 @@ endif
 all: escalonador clean
 
 escalonador: fila.o limpeza.o
-	$(CC) $(OBJETOS) processo.c escalonador.c main.c $(FLAGS) escalonador
+	$(CC) $(OBJETOS) processo.c arquivo.c escalonador.c main.c $(FLAGS) escalonador
 
 fila.o: 
 	$(CC) -c util/fila.c -I $(INCLUDES)

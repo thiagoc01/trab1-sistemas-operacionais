@@ -3,25 +3,36 @@
 #include <constantes.h>
 #include <processo.h>
 
-Processo *criaProcesso(NoProcesso **cabeca, int pid, int chegada)
+Processo *criaProcesso(NoProcesso **cabeca, int pid, int chegada, int tempoServico, int numIOs,int autoGen)
 {
     Processo *novo = (Processo *) malloc(sizeof(Processo));
     NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
 
     novo->pid = pid;
     novo->quantumMomentaneo = MAX_QUANTUM;
-    novo->tempoServico = 1 + rand() % 20;
     novo->tempoChegada = chegada;
     novo->tempoExecutado = 0;
     novo->IOsRealizados = 0;
 
-    geraIOProcesso(&novo);
+    if(autoGen)
+    {
+        novo->tempoServico = 1 + rand() % 20;
+        geraIOProcesso(&novo);
+    }
+    else
+    {
+        novo->tempoServico = tempoServico;
+        novo->quantidadeIO = numIOs;
+    }
+
+    
 
     novoNo->processo = novo;
     adicionaProcessoFila(cabeca, &novoNo);
 
     return novo;
 }
+
 
 void liberaProcesso(Processo **processo)
 {
@@ -99,6 +110,34 @@ void geraIOProcesso(Processo **novo)
 
     else
         (*novo)->chamadasIO = NULL;
+}
+
+void adicionaIO(Processo **proc, int posicao, int tipo, int tempoEntrada)
+{
+  IO *io = (IO *) malloc (sizeof(IO));
+  io->tempoEntrada = tempoEntrada;
+  io->tipo = tipo;
+  io->solicitante = *proc;
+
+
+  switch (io->tipo)
+  {
+      case IO_DISCO:
+          io->duracao = TEMPO_IO_DISCO;
+          break;
+      
+      case IO_FITA:
+          io->duracao = TEMPO_IO_FITA;
+          break;
+
+      case IO_IMPRESSORA:
+          io->duracao = TEMPO_IO_IMPRESSORA;
+          break;
+  }
+
+  io->restante = io->duracao;
+
+  (*proc)->chamadasIO[posicao] = io;
 }
 
 void imprimeInformacoesProcesso(Processo *processo)
