@@ -11,6 +11,7 @@
 int t = 0;
 int pid_atual = 1;
 int processosRodando = 0;
+int utilizaEntrada = 0;
 
 /* Utilizadas para cálculo de retorno de operação de IO */
 
@@ -20,13 +21,16 @@ NoProcesso *entrada = NULL;
 NoProcesso *baixaPrioridade = NULL, *altaPrioridade = NULL;
 NoIO *filaFita = NULL, *filaImpressora = NULL, *filaDisco = NULL;
 
+char *caminhoArquivoEntrada = NULL;
+
 void escalonaProcessos()
 {
     //Caso o modo de criação dos processos seja manual via arquivo 
     //de entrada, le os casos do arquivo selecionado
-    if(ENTRADA)
-        carregaEntrada("entrada.txt", &entrada);
-    #ifdef EXECUCAO_EM_10_MIN // Solicitado no relatório
+    if (utilizaEntrada)
+        carregaEntrada(caminhoArquivoEntrada, &entrada);
+
+    #ifdef EXECUCAO_EM_10_MIN  // Solicitado no relatório
 
     for ( ; t != 600 ; t++)
 
@@ -56,19 +60,22 @@ void escalonaProcessos()
             controlaFilaProcesso(&baixaPrioridade);
 
         //Usa os métodos recebidos via arquivo de entrada
-        if(ENTRADA)
-        {
+
+        if (utilizaEntrada)
             checaTempoEntradaProcesso(&entrada);
-        }
+
         //gera os métodos aleatoriamente
-        else {
+        else 
+        {
             if (processosRodando < MAX_PROCESSOS && !(rand() % 5))
             {
-            Processo *novo = criaProcesso(&altaPrioridade, pid_atual, t, 0, 0, 1);
-            processosRodando++;
-            pid_atual++;
+                Processo *novo = criaProcesso(&altaPrioridade, pid_atual, t, 0, 0, 1);
+                processosRodando++;
+                pid_atual++;
 
-            imprimeInformacoesProcesso(novo);
+                printf(GRN "Processo %d criado.\n\n", novo->pid);
+
+                imprimeInformacoesProcesso(novo);
             }
         }
 
@@ -188,20 +195,24 @@ void controlaFilaProcesso(NoProcesso **fila)
 
 void checaTempoEntradaProcesso(NoProcesso **entrada)
 {
-    if(*entrada)
+    if (*entrada)
     {
-        while(*entrada && (*entrada)->processo->tempoChegada == t)
+        while (*entrada && (*entrada)->processo->tempoChegada == t)
         {
             Processo * proc = NULL;
             retiraProcessoFila(entrada, &proc, 1);           
             NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
             novoNo->processo = proc;
             adicionaProcessoFila(&altaPrioridade, &novoNo);
+
+            printf(GRN "Processo %d criado.\n\n", proc->pid );
+
             imprimeInformacoesProcesso(proc);
             processosRodando++;
         }  
     }
-    else if(!processosRodando)
+
+    else if (!processosRodando)
     {
         printf("Não há mais processos a serem realizados.");
         liberaRecursos(0);
@@ -262,8 +273,6 @@ void controlaFilaDispositivo(NoIO **fila)
 
 void imprimeInformacoesFilas()
 {
-    if(ENTRADA)
-        imprimeInformacoesFilasProcessos(entrada, "entrada");
     imprimeInformacoesFilasProcessos(baixaPrioridade, "baixa prioridade");
     imprimeInformacoesFilasProcessos(altaPrioridade, "alta prioridade");
     imprimeInformacoesFilasDispositivos(filaFita, "fita");

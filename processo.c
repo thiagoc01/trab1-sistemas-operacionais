@@ -23,9 +23,7 @@ Processo *criaProcesso(NoProcesso **cabeca, int pid, int chegada, int tempoServi
     {
         novo->tempoServico = tempoServico;
         novo->quantidadeIO = numIOs;
-    }
-
-    
+    }    
 
     novoNo->processo = novo;
     adicionaProcessoFila(cabeca, &novoNo);
@@ -112,13 +110,14 @@ void geraIOProcesso(Processo **novo)
         (*novo)->chamadasIO = NULL;
 }
 
+/* Função utilizada para criação de solicitações de IO de arquivos */
+
 void adicionaIO(Processo **proc, int posicao, int tipo, int tempoEntrada)
 {
   IO *io = (IO *) malloc (sizeof(IO));
   io->tempoEntrada = tempoEntrada;
   io->tipo = tipo;
   io->solicitante = *proc;
-
 
   switch (io->tipo)
   {
@@ -142,8 +141,6 @@ void adicionaIO(Processo **proc, int posicao, int tipo, int tempoEntrada)
 
 void imprimeInformacoesProcesso(Processo *processo)
 {
-    printf(GRN "Processo %d criado.\n\n", processo->pid );
-
     printf("Informações do processo: \n");
     printf("=================================\n\n");
 

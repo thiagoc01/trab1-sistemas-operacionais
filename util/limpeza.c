@@ -2,6 +2,7 @@
 
 extern NoProcesso *baixaPrioridade, *altaPrioridade, *entrada;
 extern NoIO *filaFita, *filaImpressora, *filaDisco;
+extern char *caminhoArquivoEntrada;
 
 void liberaProcessos(NoProcesso **no)
 {
@@ -130,10 +131,14 @@ void liberaRecursos(int signum)
 
     liberaProcessos(&baixaPrioridade);
     liberaProcessos(&altaPrioridade);
+    liberaProcessos(&entrada);
 
     liberaDispositivos(&filaFita);
     liberaDispositivos(&filaDisco);
-    liberaDispositivos(&filaImpressora);    
+    liberaDispositivos(&filaImpressora);
+
+    if (caminhoArquivoEntrada)
+        free(caminhoArquivoEntrada);
 
     exit(0);
 }
