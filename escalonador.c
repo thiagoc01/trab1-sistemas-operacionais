@@ -76,6 +76,8 @@ void escalonaProcessos()
                 printf(GRN "Processo %d criado.\n\n", novo->pid);
 
                 imprimeInformacoesProcesso(novo);
+
+                restauraQuantumBaixaPrioridade();
             }
         }
 
@@ -209,6 +211,8 @@ void checaTempoEntradaProcesso(NoProcesso **entrada)
 
             imprimeInformacoesProcesso(proc);
             processosRodando++;
+
+            restauraQuantumBaixaPrioridade();
         }  
     }
 
@@ -248,7 +252,11 @@ void controlaFilaDispositivo(NoIO **fila)
             adicionaProcessoFila(&baixaPrioridade, &novoNo);
         
         else
+        {
             adicionaProcessoFila(&altaPrioridade, &novoNo);
+
+            restauraQuantumBaixaPrioridade();
+        }
 
         switch (io->tipo)
         {
@@ -295,11 +303,25 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char *tipoFila)
     puts(": ");
     printf("=================================\n\n");
 
-    printf("Processo %d com tempo de serviço %d, %d solicitação(ões) de IO e quantum restante de %d u.t..\n\n",
+    if (fila == baixaPrioridade && altaPrioridade)
+    {
+        printf("Processo %d com tempo de serviço %d, %d solicitação(ões) de IO.\n\n",
+                    fila->processo->pid,
+                    fila->processo->tempoServico,
+                    fila->processo->quantidadeIO);
+        
+    }
+
+    else
+    {
+        printf("Processo %d com tempo de serviço %d, %d solicitação(ões) de IO e quantum restante de %d u.t..\n\n",
                         fila->processo->pid,
                         fila->processo->tempoServico,
                         fila->processo->quantidadeIO,
                         fila->processo->quantumMomentaneo);
+    }
+
+    
 
     NoProcesso *proximo = fila->proximo;
 
@@ -342,4 +364,13 @@ void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
     }
 
     printf("=================================\n\n" COLOR_RESET);
+}
+
+void restauraQuantumBaixaPrioridade()
+{
+    if (altaPrioridade->proximo == altaPrioridade)
+    {
+        if (baixaPrioridade)
+            baixaPrioridade->processo->quantumMomentaneo = MAX_QUANTUM;
+    }
 }

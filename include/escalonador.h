@@ -17,4 +17,6 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char* tipoFila);
 
 void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila);
 
+void restauraQuantumBaixaPrioridade();
+
 #endif
