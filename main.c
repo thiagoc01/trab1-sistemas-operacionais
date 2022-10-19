@@ -29,7 +29,12 @@ int main(int argc, char **argv)
 
     srand(time(NULL));
 
-    escalonaProcessos();
+    if (utilizaEntrada)
+        escalonaProcessosPrevios();
+    
+    else
+        escalonaProcessosRandomicos();
+    
 
     return 0;
 }

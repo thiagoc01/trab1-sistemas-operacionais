@@ -6,9 +6,10 @@
 #include <constantes.h>
 #include <processo.h>
 
-#include <stdlib.h>
-#include <unistd.h>
+/**
+ * Função responsável pelo carregamento do arquivo do usuário contendo os processos e suas informações.
+*/
 
-void carregaEntrada(char *fileName,NoProcesso **entrada);
+void carregaEntrada(char *fileName, NoProcesso **entrada);
 
 #endif

@@ -40,7 +40,7 @@ void adicionaDispositivoFila(NoIO **cabeca, NoIO **dispositivo, int *tamanhoFila
         (*dispositivo)->anterior = (*cabeca)->anterior;
         (*dispositivo)->proximo = *cabeca;
         (*cabeca)->anterior = *dispositivo;
-        *tamanhoFila++;
+        (*tamanhoFila)++;
     }
 }
 
@@ -90,7 +90,7 @@ void retiraDispositivoFila(NoIO **cabeca, int *tamanhoFila)
             *cabeca = pop->proximo;
             (*cabeca)->anterior = pop->anterior;
             free(pop);
-            *tamanhoFila--;
+            (*tamanhoFila)--;
         }
 
         

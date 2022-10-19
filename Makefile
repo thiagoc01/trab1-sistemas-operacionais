@@ -1,6 +1,8 @@
 CC = gcc
 INCLUDES = ./include
-FLAGS =  -Wall -I $(INCLUDES) $(DEFINES) -g -o
+WARNING = -Wall
+FLAGS =  $(WARNING) -I $(INCLUDES) $(DEFINES) -o
+SOURCES = processo.c arquivo.c escalonador.c main.c
 TARGET = escalonador
 OBJETOS = fila.o limpeza.o
 EXECUCAO_EM_10_MIN =
@@ -16,14 +18,14 @@ endif
 
 all: escalonador clean
 
-escalonador: fila.o limpeza.o
-	$(CC) $(OBJETOS) processo.c arquivo.c escalonador.c main.c $(FLAGS) escalonador
+escalonador: fila.o limpeza.o $(SOURCES)
+	$(CC) $(OBJETOS) $(SOURCES) $(FLAGS) $(TARGET)
 
-fila.o: 
-	$(CC) -c util/fila.c -I $(INCLUDES)
+fila.o: util/fila.c
+	$(CC) -c util/fila.c -I $(INCLUDES) $(WARNING)
 
-limpeza.o:
-	$(CC) -c util/limpeza.c -I $(INCLUDES)
+limpeza.o: util/limpeza.c
+	$(CC) -c util/limpeza.c -I $(INCLUDES) $(WARNING)
 
 clean:
 	rm *.o

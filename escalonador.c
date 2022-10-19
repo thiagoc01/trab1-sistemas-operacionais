@@ -8,28 +8,70 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static void realizaPreparacaoIO(NoProcesso **fila, Processo *atual); // Função utilizada para modularização da preparação para realizar E/S
+
 int t = 0;
 int pid_atual = 1;
 int processosRodando = 0;
-int utilizaEntrada = 0;
+int utilizaEntrada = 0; // Programa irá usar entrada via arquivo
 
 /* Utilizadas para cálculo de retorno de operação de IO */
 
 int tamanhoFilaFita = 0, tamanhoFilaDisco = 0, tamanhoFilaImpressora = 0;
 
-NoProcesso *entrada = NULL;
+NoProcesso *entrada = NULL; // Lista de processos criados via arquivo
 NoProcesso *baixaPrioridade = NULL, *altaPrioridade = NULL;
 NoIO *filaFita = NULL, *filaImpressora = NULL, *filaDisco = NULL;
 
 char *caminhoArquivoEntrada = NULL;
 
-void escalonaProcessos()
+void escalonaProcessosPrevios()
 {
     //Caso o modo de criação dos processos seja manual via arquivo 
     //de entrada, le os casos do arquivo selecionado
-    if (utilizaEntrada)
-        carregaEntrada(caminhoArquivoEntrada, &entrada);
 
+    carregaEntrada(caminhoArquivoEntrada, &entrada);
+
+    for ( ; ; t++) 
+    {
+        printf("\nInstante %d\n", t);
+        printf("=================================\n");
+
+        if (altaPrioridade)
+            controlaFilaProcesso(&altaPrioridade);
+        
+        else if (baixaPrioridade)
+            controlaFilaProcesso(&baixaPrioridade);        
+
+        if (filaFita)
+            controlaFilaDispositivo(&filaFita);
+        
+        if (filaDisco)
+            controlaFilaDispositivo(&filaDisco);
+        
+        if (filaImpressora)
+            controlaFilaDispositivo(&filaImpressora);        
+
+        //Usa os métodos recebidos via arquivo de entrada
+
+        checaTempoEntradaProcesso(&entrada);        
+
+        imprimeInformacoesFilas();
+
+        #ifdef PARADA_ITERACAO
+        
+            getchar();
+        
+        #else
+
+            sleep(1);  
+
+        #endif     
+    }
+}
+
+void escalonaProcessosRandomicos()
+{
     #ifdef EXECUCAO_EM_10_MIN  // Solicitado no relatório
 
     for ( ; t != 600 ; t++)
@@ -42,7 +84,12 @@ void escalonaProcessos()
     {
         printf("\nInstante %d\n", t);
         printf("=================================\n");
+
+        if (altaPrioridade)
+            controlaFilaProcesso(&altaPrioridade);
         
+        else if (baixaPrioridade)
+            controlaFilaProcesso(&baixaPrioridade);        
 
         if (filaFita)
             controlaFilaDispositivo(&filaFita);
@@ -53,35 +100,22 @@ void escalonaProcessos()
         if (filaImpressora)
             controlaFilaDispositivo(&filaImpressora);  
 
-        if (altaPrioridade)
-            controlaFilaProcesso(&altaPrioridade);
         
-        else if(baixaPrioridade)
-            controlaFilaProcesso(&baixaPrioridade);
-
-        //Usa os métodos recebidos via arquivo de entrada
-
-        if (utilizaEntrada)
-            checaTempoEntradaProcesso(&entrada);
-
-        //gera os métodos aleatoriamente
-        else 
+        if (processosRodando < MAX_PROCESSOS && !(rand() % 5))
         {
-            if (processosRodando < MAX_PROCESSOS && !(rand() % 5))
-            {
-                Processo *novo = criaProcesso(&altaPrioridade, pid_atual, t, 0, 0, 1);
-                processosRodando++;
-                pid_atual++;
+            Processo *novo = criaProcesso(&altaPrioridade, pid_atual, t, 0, 0, 1);
+            processosRodando++;
+            pid_atual++;
 
-                printf(GRN "Processo %d criado.\n\n", novo->pid);
+            printf(GRN "Processo %d criado.\n\n", novo->pid);
 
-                imprimeInformacoesProcesso(novo);
+            imprimeInformacoesProcesso(novo);
 
-                restauraQuantumBaixaPrioridade();
-            }
-        }
+            restauraQuantumBaixaPrioridade();
+        }        
 
         imprimeInformacoesFilas();
+
         #ifdef PARADA_ITERACAO
         
             getchar();
@@ -100,9 +134,60 @@ void escalonaProcessos()
     #endif
 }
 
+static void realizaPreparacaoIO(NoProcesso **fila, Processo *atual)
+{
+    int tipo = atual->chamadasIO[atual->IOsRealizados]->tipo, offset = 0;
+
+    NoIO *novoNo = (NoIO *) malloc(sizeof(NoIO));
+    
+    novoNo->io = atual->chamadasIO[atual->IOsRealizados];                    
+        
+    if (tipo == IO_FITA)
+    {
+        if (tamanhoFilaFita)
+            offset = (tamanhoFilaFita - 1) * TEMPO_IO_FITA + filaFita->io->restante;
+
+        adicionaDispositivoFila(&filaFita, &novoNo, &tamanhoFilaFita);
+        
+    }
+
+    else if (tipo == IO_DISCO)
+    {
+        if (tamanhoFilaDisco)
+            offset = (tamanhoFilaDisco - 1) * TEMPO_IO_DISCO + filaDisco->io->restante;
+
+        adicionaDispositivoFila(&filaDisco, &novoNo, &tamanhoFilaDisco);
+        
+    }
+    
+    else
+    {
+        if (tamanhoFilaImpressora)
+            offset = (tamanhoFilaImpressora - 1) * TEMPO_IO_IMPRESSORA + filaImpressora->io->restante;
+
+        adicionaDispositivoFila(&filaImpressora, &novoNo, &tamanhoFilaImpressora);            
+    }
+
+    printf(RED "Processo %d irá realizar operação de %s. Retornará no instante %d \n\n" COLOR_RESET,
+                atual->pid,
+                TIPO_IO(tipo),
+                t + atual->chamadasIO[atual->IOsRealizados]->duracao + offset);               
+
+
+    retiraProcessoFila(fila, NULL, 0);
+    
+    atual->quantumMomentaneo = MAX_QUANTUM;
+}
+
 void controlaFilaProcesso(NoProcesso **fila)
 {
     Processo *atual = (*fila)->processo; // Pega o nó da cabeça
+
+    if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
+    {
+        realizaPreparacaoIO(fila, atual);
+        return;
+    }
 
     atual->tempoServico--;
     atual->tempoExecutado++;
@@ -121,50 +206,8 @@ void controlaFilaProcesso(NoProcesso **fila)
         return;
     }
 
-    if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado )
-    {
-        int tipo = atual->chamadasIO[atual->IOsRealizados]->tipo, offset = 0;        
-
-        NoIO *novoNo = (NoIO *) malloc(sizeof(NoIO));
-        
-        novoNo->io = atual->chamadasIO[atual->IOsRealizados];                    
-            
-        if (tipo == IO_FITA)
-        {
-            if (tamanhoFilaFita)
-                offset = (tamanhoFilaFita - 1) * TEMPO_IO_FITA + filaFita->io->restante;
-
-            adicionaDispositivoFila(&filaFita, &novoNo, &tamanhoFilaFita);
-            
-        }
-
-        else if (tipo == IO_DISCO)
-        {
-            if (tamanhoFilaDisco)
-                offset = (tamanhoFilaDisco - 1) * TEMPO_IO_DISCO + filaDisco->io->restante;
-
-            adicionaDispositivoFila(&filaDisco, &novoNo, &tamanhoFilaDisco);
-            
-        }
-        
-        else
-        {
-            if (tamanhoFilaImpressora)
-                offset = (tamanhoFilaImpressora - 1) * TEMPO_IO_IMPRESSORA + filaImpressora->io->restante;
-
-            adicionaDispositivoFila(&filaImpressora, &novoNo, &tamanhoFilaImpressora);            
-        }
-
-        printf(RED "Processo %d irá realizar operação de %s. Retornará no instante %d \n\n" COLOR_RESET,
-                    atual->pid,
-                    TIPO_IO(tipo),
-                    t + atual->chamadasIO[atual->IOsRealizados]->duracao + offset);               
-
-
-        retiraProcessoFila(fila,NULL,0);
-        
-        atual->quantumMomentaneo = MAX_QUANTUM;
-    }
+    if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
+        realizaPreparacaoIO(fila, atual);
 
     else if (atual->quantumMomentaneo == 0 && atual->tempoServico != 0)
     {
@@ -189,10 +232,7 @@ void controlaFilaProcesso(NoProcesso **fila)
         processosRodando--;
 
         liberaProcesso(&atual);
-
-        return;
     }
-
 }
 
 void checaTempoEntradaProcesso(NoProcesso **entrada)
@@ -201,7 +241,7 @@ void checaTempoEntradaProcesso(NoProcesso **entrada)
     {
         while (*entrada && (*entrada)->processo->tempoChegada == t)
         {
-            Processo * proc = NULL;
+            Processo *proc = NULL;
             retiraProcessoFila(entrada, &proc, 1);           
             NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
             novoNo->processo = proc;
@@ -227,56 +267,59 @@ void controlaFilaDispositivo(NoIO **fila)
 {
     IO *io = (*fila)->io;
 
-    io->restante--;
-    
-    if (io->restante)
+    if (io->tempoEntrada != io->solicitante->tempoExecutado) // Não devemos atender o processo no instante de solicitação do IO
     {
-        printf(RED "Resta(m) %d u.t. para o processo %d encerrar a operação de %s.\n\n" COLOR_RESET,
-                                io->restante,
-                                io->solicitante->pid,
-                                TIPO_IO(io->tipo));
-        
+        io->restante--;
+    
+        if (io->restante)
+        {
+            printf(RED "Resta(m) %d u.t. para o processo %d encerrar a operação de %s.\n\n" COLOR_RESET,
+                                    io->restante,
+                                    io->solicitante->pid,
+                                    TIPO_IO(io->tipo));            
+        }
+
+        else
+        {
+            printf(RED "Processo %d encerrou a operação de %s.\n\n" COLOR_RESET, io->solicitante->pid, TIPO_IO(io->tipo));        
+
+            NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
+            novoNo->processo = io->solicitante;
+
+            io->solicitante->IOsRealizados++;
+            io->solicitante->quantidadeIO--;
+
+            if (io->tipo == IO_DISCO)
+                adicionaProcessoFila(&baixaPrioridade, &novoNo);
+            
+            else
+            {
+                adicionaProcessoFila(&altaPrioridade, &novoNo);
+
+                restauraQuantumBaixaPrioridade();
+            }
+
+            switch (io->tipo)
+            {
+                case IO_DISCO:
+                    retiraDispositivoFila(fila, &tamanhoFilaDisco);
+                    break; 
+
+                case IO_FITA:
+                    retiraDispositivoFila(fila, &tamanhoFilaFita);
+                    break; 
+
+                case IO_IMPRESSORA:
+                    retiraDispositivoFila(fila, &tamanhoFilaImpressora);
+                    break; 
+            }                
+
+            free(io);
+        }
     }
 
     else
-    {
-        printf(RED "Processo %d encerrou a operação de %s.\n\n" COLOR_RESET, io->solicitante->pid, TIPO_IO(io->tipo));        
-
-        NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
-        novoNo->processo = io->solicitante;
-
-        io->solicitante->IOsRealizados++;
-        io->solicitante->quantidadeIO--;
-
-        if (io->tipo == IO_DISCO)
-            adicionaProcessoFila(&baixaPrioridade, &novoNo);
-        
-        else
-        {
-            adicionaProcessoFila(&altaPrioridade, &novoNo);
-
-            restauraQuantumBaixaPrioridade();
-        }
-
-        switch (io->tipo)
-        {
-            case IO_DISCO:
-                retiraDispositivoFila(fila, &tamanhoFilaDisco);
-                break; 
-
-            case IO_FITA:
-                retiraDispositivoFila(fila, &tamanhoFilaFita);
-                break; 
-
-            case IO_IMPRESSORA:
-                retiraDispositivoFila(fila, &tamanhoFilaImpressora);
-                break; 
-        }
-              
-
-        free(io);
-    }   
-
+        io->tempoEntrada = -1; // Para não travar a operação na próxima verificação
 }
 
 void imprimeInformacoesFilas()
@@ -303,7 +346,7 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char *tipoFila)
     puts(": ");
     printf("=================================\n\n");
 
-    if (fila == baixaPrioridade && altaPrioridade)
+    if (fila == baixaPrioridade && altaPrioridade) // Se há processo na fila de alta prioridade, não devemos imprimir o quantum restante.
     {
         printf("Processo %d com tempo de serviço %d, %d solicitação(ões) de IO.\n\n",
                     fila->processo->pid,
@@ -319,9 +362,7 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char *tipoFila)
                         fila->processo->tempoServico,
                         fila->processo->quantidadeIO,
                         fila->processo->quantumMomentaneo);
-    }
-
-    
+    }    
 
     NoProcesso *proximo = fila->proximo;
 
@@ -366,7 +407,7 @@ void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
     printf("=================================\n\n" COLOR_RESET);
 }
 
-void restauraQuantumBaixaPrioridade()
+void restauraQuantumBaixaPrioridade() 
 {
     if (altaPrioridade->proximo == altaPrioridade)
     {

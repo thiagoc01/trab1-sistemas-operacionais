@@ -9,7 +9,15 @@ Processo *criaProcesso(NoProcesso **cabeca, int pid, int chegada, int tempoServi
 
 void liberaProcesso(Processo **processo);
 
+/**
+ * Utilizada para gerar operações aleatórias de E/S para um processo.
+*/
+
 void geraIOProcesso(Processo **novo);
+
+/**
+ * Utilizada para criar as operações de E/S especificadas no arquivo de entrada.
+*/
 
 void adicionaIO(Processo **proc, int posicao, int tipo, int tempoEntrada);
 
