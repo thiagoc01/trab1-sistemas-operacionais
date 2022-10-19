@@ -23,6 +23,7 @@ NoProcesso *entrada = NULL; // Lista de processos criados via arquivo
 NoProcesso *baixaPrioridade = NULL, *altaPrioridade = NULL;
 NoIO *filaFita = NULL, *filaImpressora = NULL, *filaDisco = NULL;
 
+
 char *caminhoArquivoEntrada = NULL;
 
 void escalonaProcessosPrevios()
@@ -38,7 +39,14 @@ void escalonaProcessosPrevios()
         printf("=================================\n");
 
         if (altaPrioridade)
-            controlaFilaProcesso(&altaPrioridade);
+        {
+            /* Caso em que existe um processo na fila de baixa prioridade executando. A fila de alta deve aguardar. */
+
+            if (!(baixaPrioridade && baixaPrioridade->processo->quantumMomentaneo != MAX_QUANTUM))
+                controlaFilaProcesso(&altaPrioridade);
+            else
+                controlaFilaProcesso(&baixaPrioridade);
+        } 
         
         else if (baixaPrioridade)
             controlaFilaProcesso(&baixaPrioridade);        
@@ -86,7 +94,14 @@ void escalonaProcessosRandomicos()
         printf("=================================\n");
 
         if (altaPrioridade)
-            controlaFilaProcesso(&altaPrioridade);
+        {
+            /* Caso em que existe um processo na fila de baixa prioridade executando. A fila de alta deve aguardar. */
+
+            if (!(baixaPrioridade && baixaPrioridade->processo->quantumMomentaneo != MAX_QUANTUM))
+                controlaFilaProcesso(&altaPrioridade);
+            else
+                controlaFilaProcesso(&baixaPrioridade);
+        }            
         
         else if (baixaPrioridade)
             controlaFilaProcesso(&baixaPrioridade);        
@@ -346,7 +361,7 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char *tipoFila)
     puts(": ");
     printf("=================================\n\n");
 
-    if (fila == baixaPrioridade && altaPrioridade) // Se há processo na fila de alta prioridade, não devemos imprimir o quantum restante.
+    if (fila == baixaPrioridade && altaPrioridade && baixaPrioridade->processo->quantumMomentaneo == MAX_QUANTUM) // Se há processo na fila de alta prioridade, não devemos imprimir o quantum restante.
     {
         printf("Processo %d com tempo de serviço %d, %d solicitação(ões) de IO.\n\n",
                     fila->processo->pid,
@@ -409,9 +424,5 @@ void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
 
 void restauraQuantumBaixaPrioridade() 
 {
-    if (altaPrioridade->proximo == altaPrioridade)
-    {
-        if (baixaPrioridade)
-            baixaPrioridade->processo->quantumMomentaneo = MAX_QUANTUM;
-    }
+    
 }
