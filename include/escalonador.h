@@ -39,10 +39,4 @@ void imprimeInformacoesFilasProcessos(NoProcesso *fila, const char* tipoFila);
 
 void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila);
 
-/**
- * Caso algum processo entre na fila de alta prioridade e o de baixa tenha gastado seu quantum, ele deve ser reiniciado.
-*/
-
-void restauraQuantumBaixaPrioridade();
-
 #endif

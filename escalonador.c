@@ -125,8 +125,6 @@ void escalonaProcessosRandomicos()
             printf(GRN "Processo %d criado.\n\n", novo->pid);
 
             imprimeInformacoesProcesso(novo);
-
-            restauraQuantumBaixaPrioridade();
         }        
 
         imprimeInformacoesFilas();
@@ -266,8 +264,6 @@ void checaTempoEntradaProcesso(NoProcesso **entrada)
 
             imprimeInformacoesProcesso(proc);
             processosRodando++;
-
-            restauraQuantumBaixaPrioridade();
         }  
     }
 
@@ -308,11 +304,7 @@ void controlaFilaDispositivo(NoIO **fila)
                 adicionaProcessoFila(&baixaPrioridade, &novoNo);
             
             else
-            {
                 adicionaProcessoFila(&altaPrioridade, &novoNo);
-
-                restauraQuantumBaixaPrioridade();
-            }
 
             switch (io->tipo)
             {
@@ -420,9 +412,4 @@ void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
     }
 
     printf("=================================\n\n" COLOR_RESET);
-}
-
-void restauraQuantumBaixaPrioridade() 
-{
-    
 }
