@@ -23,9 +23,9 @@ void trataArgumentosTerminal(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-    trataArgumentosTerminal(argc, argv);
-
     alteraComportamentoSigTermInt();
+
+    trataArgumentosTerminal(argc, argv);    
 
     srand(time(NULL));
 

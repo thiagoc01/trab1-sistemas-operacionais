@@ -31,6 +31,12 @@ void controlaFilaDispositivo(NoIO **fila);
  * Utilizada para os processos já tabelados conforme entrada do arquivo do usuário.
 */
 
+/**
+ * Função que é entry point para o controle das cinco filas, utilizada para modularização do código.
+ */
+
+void realizaControleFilas();
+
 void checaTempoEntradaProcesso(NoProcesso **entrada);
 
 void imprimeInformacoesFilas();

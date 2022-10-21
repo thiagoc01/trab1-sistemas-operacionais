@@ -15,14 +15,13 @@ int pid_atual = 1;
 int processosRodando = 0;
 int utilizaEntrada = 0; // Programa irá usar entrada via arquivo
 
-/* Utilizadas para cálculo de retorno de operação de IO */
+/* Utilizadas para cálculo do instante de retorno de operação de IO */
 
 int tamanhoFilaFita = 0, tamanhoFilaDisco = 0, tamanhoFilaImpressora = 0;
 
 NoProcesso *entrada = NULL; // Lista de processos criados via arquivo
 NoProcesso *baixaPrioridade = NULL, *altaPrioridade = NULL;
 NoIO *filaFita = NULL, *filaImpressora = NULL, *filaDisco = NULL;
-
 
 char *caminhoArquivoEntrada = NULL;
 
@@ -38,27 +37,7 @@ void escalonaProcessosPrevios()
         printf("\nInstante %d\n", t);
         printf("=================================\n");
 
-        if (altaPrioridade)
-        {
-            /* Caso em que existe um processo na fila de baixa prioridade executando. A fila de alta deve aguardar. */
-
-            if (!(baixaPrioridade && baixaPrioridade->processo->quantumMomentaneo != MAX_QUANTUM))
-                controlaFilaProcesso(&altaPrioridade);
-            else
-                controlaFilaProcesso(&baixaPrioridade);
-        } 
-        
-        else if (baixaPrioridade)
-            controlaFilaProcesso(&baixaPrioridade);        
-
-        if (filaFita)
-            controlaFilaDispositivo(&filaFita);
-        
-        if (filaDisco)
-            controlaFilaDispositivo(&filaDisco);
-        
-        if (filaImpressora)
-            controlaFilaDispositivo(&filaImpressora);        
+        realizaControleFilas();    
 
         //Usa os métodos recebidos via arquivo de entrada
 
@@ -93,28 +72,7 @@ void escalonaProcessosRandomicos()
         printf("\nInstante %d\n", t);
         printf("=================================\n");
 
-        if (altaPrioridade)
-        {
-            /* Caso em que existe um processo na fila de baixa prioridade executando. A fila de alta deve aguardar. */
-
-            if (!(baixaPrioridade && baixaPrioridade->processo->quantumMomentaneo != MAX_QUANTUM))
-                controlaFilaProcesso(&altaPrioridade);
-            else
-                controlaFilaProcesso(&baixaPrioridade);
-        }            
-        
-        else if (baixaPrioridade)
-            controlaFilaProcesso(&baixaPrioridade);        
-
-        if (filaFita)
-            controlaFilaDispositivo(&filaFita);
-        
-        if (filaDisco)
-            controlaFilaDispositivo(&filaDisco);
-        
-        if (filaImpressora)
-            controlaFilaDispositivo(&filaImpressora);  
-
+        realizaControleFilas();
         
         if (processosRodando < MAX_PROCESSOS && !(rand() % 5))
         {
@@ -169,8 +127,7 @@ static void realizaPreparacaoIO(NoProcesso **fila, Processo *atual)
         if (tamanhoFilaDisco)
             offset = (tamanhoFilaDisco - 1) * TEMPO_IO_DISCO + filaDisco->io->restante;
 
-        adicionaDispositivoFila(&filaDisco, &novoNo, &tamanhoFilaDisco);
-        
+        adicionaDispositivoFila(&filaDisco, &novoNo, &tamanhoFilaDisco);        
     }
     
     else
@@ -327,6 +284,31 @@ void controlaFilaDispositivo(NoIO **fila)
 
     else
         io->tempoEntrada = -1; // Para não travar a operação na próxima verificação
+}
+
+void realizaControleFilas()
+{
+    if (altaPrioridade)
+    {
+        /* Caso em que existe um processo na fila de baixa prioridade executando. A fila de alta deve aguardar. */
+
+        if (!(baixaPrioridade && baixaPrioridade->processo->quantumMomentaneo != MAX_QUANTUM))
+            controlaFilaProcesso(&altaPrioridade);
+        else
+            controlaFilaProcesso(&baixaPrioridade);
+    } 
+    
+    else if (baixaPrioridade)
+        controlaFilaProcesso(&baixaPrioridade);        
+
+    if (filaFita)
+        controlaFilaDispositivo(&filaFita);
+    
+    if (filaDisco)
+        controlaFilaDispositivo(&filaDisco);
+    
+    if (filaImpressora)
+        controlaFilaDispositivo(&filaImpressora);    
 }
 
 void imprimeInformacoesFilas()
