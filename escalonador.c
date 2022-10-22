@@ -143,16 +143,38 @@ void controlaFilaProcesso(NoProcesso **fila)
     Processo *atual = (*fila)->processo; // Pega o nó da cabeça
 
     if (atual->tempoChegada != t)
-    {
+    {        
         if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
         {
             realizaPreparacaoIO(fila, atual);
             return;
         }
 
+        else if (atual->quantumMomentaneo == 0 && atual->tempoServico - 1 != 0)
+        {
+            printf(RED "Processo %d chegou ao fim da fatia de tempo.\n\n" COLOR_RESET, atual->pid);
+
+            atual->quantumMomentaneo = MAX_QUANTUM;
+            retiraProcessoFila(fila, NULL, 0);
+
+            NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
+
+            novoNo->processo = atual;
+
+            adicionaProcessoFila(&baixaPrioridade, &novoNo);
+
+            return;
+        }
+
         atual->tempoServico--;
         atual->tempoExecutado++;
         atual->quantumMomentaneo--;
+
+        if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
+        {
+            realizaPreparacaoIO(fila, atual);
+            return;
+        }        
         
         if (atual->tempoServico == 0)
         {
@@ -165,34 +187,6 @@ void controlaFilaProcesso(NoProcesso **fila)
             liberaProcesso(&atual);
             
             return;
-        }
-
-        if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
-            realizaPreparacaoIO(fila, atual);
-
-        else if (atual->quantumMomentaneo == 0 && atual->tempoServico != 0)
-        {
-            printf(RED "Processo %d chegou ao fim da fatia de tempo.\n\n" COLOR_RESET, atual->pid);
-
-            atual->quantumMomentaneo = MAX_QUANTUM;
-            retiraProcessoFila(fila, NULL, 0);
-
-            NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
-
-            novoNo->processo = atual;
-
-            adicionaProcessoFila(&baixaPrioridade, &novoNo);
-        }
-
-        else if (atual->quantumMomentaneo == 0 && atual->tempoServico== 0)
-        {
-            printf(RED "Processo %d chegou ao fim da fatia de tempo e tempo de serviço. Irá encerrar.\n\n" COLOR_RESET, atual->pid);
-
-            retiraProcessoFila(fila,NULL,0);
-
-            processosRodando--;
-
-            liberaProcesso(&atual);
         }
     }    
 }
@@ -226,53 +220,62 @@ void checaTempoEntradaProcesso(NoProcesso **entrada)
 void controlaFilaDispositivo(NoIO **fila)
 {
     IO *io = (*fila)->io;
-        io->restante--;
-    
-        if (io->restante)
-        {
-            printf(RED "Resta(m) %d u.t. para o processo %d encerrar a operação de %s.\n\n" COLOR_RESET,
-                                    io->restante,
-                                    io->solicitante->pid,
-                                    TIPO_IO(io->tipo));            
-        }
 
+    io->restante--;
+
+    if (io->restante)
+    {
+        printf(RED "Resta(m) %d u.t. para o processo %d encerrar a operação de %s.\n\n" COLOR_RESET,
+                                io->restante,
+                                io->solicitante->pid,
+                                TIPO_IO(io->tipo));            
+    }
+
+    else
+    {
+        printf(RED "Processo %d encerrou a operação de %s.\n\n" COLOR_RESET, io->solicitante->pid, TIPO_IO(io->tipo));        
+
+        NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
+        novoNo->processo = io->solicitante;
+
+        io->solicitante->IOsRealizados++;
+        io->solicitante->quantidadeIO--;
+
+        if (io->tipo == IO_DISCO)
+        {
+            if (!altaPrioridade && !baixaPrioridade)
+            {
+                novoNo->processo->tempoServico++;
+                novoNo->processo->quantumMomentaneo = MAX_QUANTUM + 1;
+            }
+            adicionaProcessoFila(&baixaPrioridade, &novoNo);
+        }
+            
+        
         else
         {
-            printf(RED "Processo %d encerrou a operação de %s.\n\n" COLOR_RESET, io->solicitante->pid, TIPO_IO(io->tipo));        
-
-            NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
-            novoNo->processo = io->solicitante;
-
-            io->solicitante->IOsRealizados++;
-            io->solicitante->quantidadeIO--;
-
-            if (io->tipo == IO_DISCO)
-                adicionaProcessoFila(&baixaPrioridade, &novoNo);
-            
-            else
-            {
-                verificaChegadaProcesso();
-                adicionaProcessoFila(&altaPrioridade, &novoNo);
-            }
-                
-
-            switch (io->tipo)
-            {
-                case IO_DISCO:
-                    retiraDispositivoFila(fila, &tamanhoFilaDisco);
-                    break; 
-
-                case IO_FITA:
-                    retiraDispositivoFila(fila, &tamanhoFilaFita);
-                    break; 
-
-                case IO_IMPRESSORA:
-                    retiraDispositivoFila(fila, &tamanhoFilaImpressora);
-                    break; 
-            }                
-
-            free(io);
+            verificaChegadaProcesso();
+            adicionaProcessoFila(&altaPrioridade, &novoNo);
         }
+            
+
+        switch (io->tipo)
+        {
+            case IO_DISCO:
+                retiraDispositivoFila(fila, &tamanhoFilaDisco);
+                break; 
+
+            case IO_FITA:
+                retiraDispositivoFila(fila, &tamanhoFilaFita);
+                break; 
+
+            case IO_IMPRESSORA:
+                retiraDispositivoFila(fila, &tamanhoFilaImpressora);
+                break; 
+        }                
+
+        free(io);
+    }
     
 }
 
