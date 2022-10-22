@@ -37,11 +37,9 @@ void escalonaProcessosPrevios()
         printf("\nInstante %d\n", t);
         printf("=================================\n");
 
-        realizaControleFilas();    
+        verificaChegadaProcesso();
 
-        //Usa os métodos recebidos via arquivo de entrada
-
-        checaTempoEntradaProcesso(&entrada);        
+        realizaControleFilas();                        
 
         imprimeInformacoesFilas();
 
@@ -72,18 +70,9 @@ void escalonaProcessosRandomicos()
         printf("\nInstante %d\n", t);
         printf("=================================\n");
 
-        realizaControleFilas();
-        
-        if (processosRodando < MAX_PROCESSOS && !(rand() % 5))
-        {
-            Processo *novo = criaProcesso(&altaPrioridade, pid_atual, t, 0, 0, 1);
-            processosRodando++;
-            pid_atual++;
+        verificaChegadaProcesso();
 
-            printf(GRN "Processo %d criado.\n\n", novo->pid);
-
-            imprimeInformacoesProcesso(novo);
-        }        
+        realizaControleFilas();                   
 
         imprimeInformacoesFilas();
 
@@ -153,56 +142,59 @@ void controlaFilaProcesso(NoProcesso **fila)
 {
     Processo *atual = (*fila)->processo; // Pega o nó da cabeça
 
-    if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
+    if (atual->tempoChegada != t)
     {
-        realizaPreparacaoIO(fila, atual);
-        return;
-    }
+        if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
+        {
+            realizaPreparacaoIO(fila, atual);
+            return;
+        }
 
-    atual->tempoServico--;
-    atual->tempoExecutado++;
-    atual->quantumMomentaneo--;
-    
-    if (atual->tempoServico == 0)
-    {
-        printf(BMAG "Processo %d encerrou.\n\n" COLOR_RESET, atual->pid);
-
-        processosRodando--;
-
-        retiraProcessoFila(fila, NULL, 0);
-
-        liberaProcesso(&atual);
+        atual->tempoServico--;
+        atual->tempoExecutado++;
+        atual->quantumMomentaneo--;
         
-        return;
-    }
+        if (atual->tempoServico == 0)
+        {
+            printf(BMAG "Processo %d encerrou.\n\n" COLOR_RESET, atual->pid);
 
-    if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
-        realizaPreparacaoIO(fila, atual);
+            processosRodando--;
 
-    else if (atual->quantumMomentaneo == 0 && atual->tempoServico != 0)
-    {
-        printf(RED "Processo %d chegou ao fim da fatia de tempo.\n\n" COLOR_RESET, atual->pid);
+            retiraProcessoFila(fila, NULL, 0);
 
-        atual->quantumMomentaneo = MAX_QUANTUM;
-        retiraProcessoFila(fila, NULL, 0);
+            liberaProcesso(&atual);
+            
+            return;
+        }
 
-        NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
+        if (atual->quantidadeIO && atual->chamadasIO[atual->IOsRealizados]->tempoEntrada == atual->tempoExecutado)
+            realizaPreparacaoIO(fila, atual);
 
-        novoNo->processo = atual;
+        else if (atual->quantumMomentaneo == 0 && atual->tempoServico != 0)
+        {
+            printf(RED "Processo %d chegou ao fim da fatia de tempo.\n\n" COLOR_RESET, atual->pid);
 
-        adicionaProcessoFila(&baixaPrioridade, &novoNo);
-    }
+            atual->quantumMomentaneo = MAX_QUANTUM;
+            retiraProcessoFila(fila, NULL, 0);
 
-    else if (atual->quantumMomentaneo == 0 && atual->tempoServico== 0)
-    {
-        printf(RED "Processo %d chegou ao fim da fatia de tempo e tempo de serviço. Irá encerrar.\n\n" COLOR_RESET, atual->pid);
+            NoProcesso *novoNo = (NoProcesso *) malloc(sizeof(NoProcesso));
 
-        retiraProcessoFila(fila,NULL,0);
+            novoNo->processo = atual;
 
-        processosRodando--;
+            adicionaProcessoFila(&baixaPrioridade, &novoNo);
+        }
 
-        liberaProcesso(&atual);
-    }
+        else if (atual->quantumMomentaneo == 0 && atual->tempoServico== 0)
+        {
+            printf(RED "Processo %d chegou ao fim da fatia de tempo e tempo de serviço. Irá encerrar.\n\n" COLOR_RESET, atual->pid);
+
+            retiraProcessoFila(fila,NULL,0);
+
+            processosRodando--;
+
+            liberaProcesso(&atual);
+        }
+    }    
 }
 
 void checaTempoEntradaProcesso(NoProcesso **entrada)
@@ -234,9 +226,6 @@ void checaTempoEntradaProcesso(NoProcesso **entrada)
 void controlaFilaDispositivo(NoIO **fila)
 {
     IO *io = (*fila)->io;
-
-    if (io->tempoEntrada != io->solicitante->tempoExecutado) // Não devemos atender o processo no instante de solicitação do IO
-    {
         io->restante--;
     
         if (io->restante)
@@ -261,7 +250,11 @@ void controlaFilaDispositivo(NoIO **fila)
                 adicionaProcessoFila(&baixaPrioridade, &novoNo);
             
             else
+            {
+                verificaChegadaProcesso();
                 adicionaProcessoFila(&altaPrioridade, &novoNo);
+            }
+                
 
             switch (io->tipo)
             {
@@ -280,14 +273,20 @@ void controlaFilaDispositivo(NoIO **fila)
 
             free(io);
         }
-    }
-
-    else
-        io->tempoEntrada = -1; // Para não travar a operação na próxima verificação
+    
 }
 
 void realizaControleFilas()
 {
+    if (filaFita)
+        controlaFilaDispositivo(&filaFita);
+    
+    if (filaDisco)
+        controlaFilaDispositivo(&filaDisco);
+    
+    if (filaImpressora)
+        controlaFilaDispositivo(&filaImpressora); 
+
     if (altaPrioridade)
     {
         /* Caso em que existe um processo na fila de baixa prioridade executando. A fila de alta deve aguardar. */
@@ -299,16 +298,7 @@ void realizaControleFilas()
     } 
     
     else if (baixaPrioridade)
-        controlaFilaProcesso(&baixaPrioridade);        
-
-    if (filaFita)
-        controlaFilaDispositivo(&filaFita);
-    
-    if (filaDisco)
-        controlaFilaDispositivo(&filaDisco);
-    
-    if (filaImpressora)
-        controlaFilaDispositivo(&filaImpressora);    
+        controlaFilaProcesso(&baixaPrioridade);       
 }
 
 void imprimeInformacoesFilas()
@@ -394,4 +384,25 @@ void imprimeInformacoesFilasDispositivos(NoIO *fila, const char* tipoFila)
     }
 
     printf("=================================\n\n" COLOR_RESET);
+}
+
+void verificaChegadaProcesso()
+{
+    if (utilizaEntrada)
+        checaTempoEntradaProcesso(&entrada);
+
+    else
+    {
+        if (processosRodando < MAX_PROCESSOS && !(rand() % 5))
+        {
+            Processo *novo = criaProcesso(&altaPrioridade, pid_atual, t, 0, 0, 1);
+            processosRodando++;
+            pid_atual++;
+
+            printf(GRN "Processo %d criado.\n\n", novo->pid);
+
+            imprimeInformacoesProcesso(novo);
+        }  
+    }
+
 }
